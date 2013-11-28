@@ -1,8 +1,11 @@
 package catena
 
 import (
+	"crypto/rand"
 	"errors"
+	"fmt"
 	"hash"
+	"io"
 	"math/big"
 )
 
@@ -82,6 +85,7 @@ func sbrh(c, x []byte, H hash.Hash) ([]byte, error) {
 		H.Reset()
 	}
 
+	fmt.Printf("*** size of v: %d\n", len(v))
 	H.Write(c)
 	H.Write(bigPadded(twoToC, cPad))
 	H.Write(v[0])
@@ -89,8 +93,9 @@ func sbrh(c, x []byte, H hash.Hash) ([]byte, error) {
 	x2 := H.Sum(nil)
 	H.Reset()
 
-	for i := 1; i < stop; i++ {
+	for i := 1; i < stop-1; i++ {
 		j := reverseBits(uint32(i))
+		fmt.Printf("j = %d\n", j)
 		H.Write(c)
 		ci := new(big.Int).Add(twoToC, big.NewInt(int64(i)))
 		H.Write(bigPadded(ci, cPad))
@@ -133,7 +138,7 @@ func Tweak(mode byte, H hash.Hash, saltLen int, ad []byte) ([]byte, error) {
 
 func HashPasswordWithSalt(password, tweak, salt []byte, g, g0 int64, H hash.Hash) ([]byte, error) {
 	if g < g0 {
-		return ErrInvalidGarlic
+		return nil, ErrInvalidGarlic
 	}
 
 	x := make([]byte, len(tweak)+len(password)|len(salt))
@@ -149,7 +154,7 @@ func HashPasswordWithSalt(password, tweak, salt []byte, g, g0 int64, H hash.Hash
 		x, err = sbrh(c, x, H)
 		if err != nil {
 			H.Reset()
-			return err
+			return nil, err
 		}
 		H.Write(c)
 		H.Write(bigPadded(twoCp1, cPad))
@@ -157,5 +162,26 @@ func HashPasswordWithSalt(password, tweak, salt []byte, g, g0 int64, H hash.Hash
 		x = H.Sum(nil)
 		H.Reset()
 	}
-	return nil
+	return x, nil
+}
+
+type PasswordHash struct {
+	Salt []byte
+	Hash []byte
+}
+
+func HashPassword(password, tweak []byte, g, g0 int64, H hash.Hash, saltLen int) (*PasswordHash, error) {
+	var ph PasswordHash
+
+	ph.Salt = make([]byte, saltLen)
+	_, err := io.ReadFull(rand.Reader, ph.Salt)
+	if err != nil {
+		return nil, err
+	}
+
+	ph.Hash, err = HashPasswordWithSalt(password, tweak, ph.Salt, g, g0, H)
+	if err != nil {
+		return nil, err
+	}
+	return &ph, nil
 }
