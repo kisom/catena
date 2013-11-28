@@ -9,6 +9,13 @@ import (
 	"testing"
 )
 
+func checkErr(t *testing.T, err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		t.FailNow()
+	}
+}
+
 type rBitTest struct {
 	Value    uint32
 	Expected uint32
@@ -68,5 +75,24 @@ func TestTweakGeneration(t *testing.T) {
 			fmt.Fprintf(os.Stderr, "\t  Actual: %x\n", tweak)
 			t.FailNow()
 		}
+	}
+}
+
+func TestBasicHash(t *testing.T) {
+	H := sha256.New()
+	testPass := "password"
+	tweak, err := Tweak(ModePassHash, H, 16, nil)
+	checkErr(t, err)
+
+	garlic := int64(16384)
+	ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
+	checkErr(t, err)
+
+	hash, err := HashPasswordWithSalt([]byte(testPass), tweak, ph.Salt, garlic, 0, H)
+	checkErr(t, err)
+
+	if !bytes.Equal(hash, ph.Hash) {
+		fmt.Fprintf(os.Stderr, "catena: failed to match password\n")
+		t.FailNow()
 	}
 }
