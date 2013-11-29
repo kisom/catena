@@ -2,6 +2,7 @@ package catena
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"errors"
 	"hash"
 	"io"
@@ -54,15 +55,6 @@ var (
 	ErrInvalidGarlic    = errors.New("catena: invalid garlic")
 	ErrInvalidTweakMode = errors.New("catena: invalid tweak mode")
 )
-
-// Algorithm from Hacker's Delight
-func reverseBits(x uint32) uint32 {
-	x = (x&0x55555555)<<1 | (x&0xAAAAAAAA)>>1
-	x = (x&0x33333333)<<2 | (x&0xCCCCCCCC)>>2
-	x = (x&0x0F0F0F0F)<<4 | (x&0xF0F0F0F0)>>4
-	x = (x&0x00FF00FF)<<8 | (x&0xFF00FF00)>>8
-	return (x&0x0000FFFF)<<16 | (x&0xFFFF0000)>>16
-}
 
 func incCounter(ctr *[4]byte) {
 	if ctr[3]++; ctr[3] != 0 {
@@ -219,4 +211,12 @@ func HashPassword(password, tweak []byte, g, g0 int64, H hash.Hash, saltLen int)
 		return nil, err
 	}
 	return &ph, nil
+}
+
+func MatchPassword(password, tweak []byte, g, g0 int64, H hash.Hash, ph *PasswordHash) bool {
+	out, err := HashPasswordWithSalt(password, tweak, ph.Salt, g, g0, H)
+	if err != nil {
+		return false
+	}
+	return subtle.ConstantTimeCompare(out, ph.Hash) == 1
 }
