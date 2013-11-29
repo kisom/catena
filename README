@@ -3,3 +3,57 @@ catena: a memory consuming password scrambler
 golang implementation of Catena.
 
 See http://eprint.iacr.org/2013/525.pdf.
+
+The garlic should be between 1 and 31
+
+
+PERFORMANCE NOTES
+
+The benchmark uses the following parameters:
+	garlic = 16
+	initial garlic = 0
+	tweak:
+		mode: password hashing
+		hash function: SHA256
+		salt length: 16 bytes
+		additional data: none
+
+My test machine has the following specs:
+
+	avail mem = 8049483776 (7676MB)
+	cpu0: Intel(R) Core(TM) i5-3320M CPU @ 2.60GHz, 1197.50 MHz
+	cpu1: Intel(R) Core(TM) i5-3320M CPU @ 2.60GHz, 1197.50 MHz
+	cpu2: Intel(R) Core(TM) i5-3320M CPU @ 2.60GHz, 1197.50 MHz
+	cpu3: Intel(R) Core(TM) i5-3320M CPU @ 2.60GHz, 1197.50 MHz
+
+A garlic greater than 25 (with an initial garlic of 0) runs out of
+memory; a garlic of 25 takes nearly 10 minutes to complete.
+
+For faster SHA-256 hashing, take a look at github.com/conformal/fastsha256.
+With the standard `crypto/sha256` package:
+
+	BenchmarkBasicHash             1        1435149021 ns/op
+
+With the `fastsha256` package:
+
+	BenchmarkBasicHash             1        1083923404 ns/op
+
+The `fastsha256` runs in just over 75% of the time as the standard library
+SHA-256 pacakge.
+
+
+LICENSE
+
+Copyright (c) 2013 Kyle Isom <kyle@tyrfingr.is>
+
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above 
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
