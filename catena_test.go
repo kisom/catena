@@ -96,10 +96,40 @@ func TestBasicHash(t *testing.T) {
 	ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
 	checkErr(t, err)
 
-	hash, err := HashPasswordWithSalt([]byte(testPass), tweak, ph.Salt, garlic, 0, H)
+	if !MatchPassword([]byte(testPass), tweak, garlic, 0, H, ph) {
+		fmt.Fprintf(os.Stderr, "catena: failed to match password\n")
+		t.FailNow()
+	}
+}
+
+func TestBasicHashFailsGarlic(t *testing.T) {
+	H := sha256.New()
+	testPass := "password"
+	tweak, err := Tweak(ModePassHash, H, 16, nil)
 	checkErr(t, err)
 
-	if !bytes.Equal(hash, ph.Hash) {
+	garlic := int64(16)
+	ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
+	checkErr(t, err)
+
+	if MatchPassword([]byte(testPass), tweak, garlic-2, 1, H, ph) {
+		fmt.Fprintf(os.Stderr, "catena: failed to match password\n")
+		t.FailNow()
+	}
+}
+
+func TestBasicHashFailsPassword(t *testing.T) {
+	H := sha256.New()
+	testPass := "password1"
+	badPass := "password2"
+	tweak, err := Tweak(ModePassHash, H, 16, nil)
+	checkErr(t, err)
+
+	garlic := int64(16)
+	ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
+	checkErr(t, err)
+
+	if MatchPassword([]byte(badPass), tweak, garlic, 0, H, ph) {
 		fmt.Fprintf(os.Stderr, "catena: failed to match password\n")
 		t.FailNow()
 	}
