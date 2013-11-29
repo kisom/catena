@@ -3,7 +3,6 @@ package catena
 import (
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"hash"
 	"io"
 	"math/big"
@@ -15,6 +14,40 @@ const (
 	ModePassHash      byte = 0x00
 	ModeKeyDerivation byte = 0x01
 )
+
+func bitLength(x uint32) uint32 {
+	var i uint32
+	switch {
+	case x > 16777216:
+		i = 32
+	case x > 65536:
+		i = 24
+	case x > 256:
+		i = 16
+	default:
+		i = 8
+	}
+	for {
+		if (x & (1 << i)) != 0 {
+			return i
+		} else if i == 0 {
+			break
+		}
+		i--
+	}
+	return 0
+}
+
+func tau(x uint32) int {
+	var bitLen = bitLength(x)
+	var n uint32
+	for i := uint32(0); i <= bitLen; i++ {
+		b := x & 1
+		x = x >> 1
+		n += (b << (bitLen - i))
+	}
+	return int(n)
+}
 
 var twoTo32m1 = new(big.Int).Exp(big.NewInt(2), big.NewInt(32), nil)
 var (
@@ -67,7 +100,7 @@ func sbrh(c, x []byte, H hash.Hash) ([]byte, error) {
 	}
 
 	var twoToC = new(big.Int).Exp(big.NewInt(2), garlic, nil)
-	var stop = int(twoToC.Int64())
+	var stop = twoToC.Int64()
 	var v = make([][]byte, stop)
 
 	H.Write(c)
@@ -76,7 +109,7 @@ func sbrh(c, x []byte, H hash.Hash) ([]byte, error) {
 	v[0] = H.Sum(nil)
 	H.Reset()
 
-	for i := 1; i < stop; i++ {
+	for i := int64(1); i < stop; i++ {
 		H.Write(c)
 		incCounter(&counter)
 		H.Write(counter[:])
@@ -85,7 +118,6 @@ func sbrh(c, x []byte, H hash.Hash) ([]byte, error) {
 		H.Reset()
 	}
 
-	fmt.Printf("*** size of v: %d\n", len(v))
 	H.Write(c)
 	H.Write(bigPadded(twoToC, cPad))
 	H.Write(v[0])
@@ -93,15 +125,18 @@ func sbrh(c, x []byte, H hash.Hash) ([]byte, error) {
 	x2 := H.Sum(nil)
 	H.Reset()
 
-	for i := 1; i < stop-1; i++ {
-		j := reverseBits(uint32(i))
-		fmt.Printf("j = %d\n", j)
+	for i := int64(1); i < stop-1; i++ {
+		j := int(tau(uint32(i)))
 		H.Write(c)
 		ci := new(big.Int).Add(twoToC, big.NewInt(int64(i)))
 		H.Write(bigPadded(ci, cPad))
 		H.Write(x2)
 		H.Write(v[int(j)])
 		x2 = H.Sum(nil)
+	}
+
+	for i := int64(0); i < stop-1; i++ {
+		v[i] = nil
 	}
 
 	return x2, nil

@@ -2,8 +2,9 @@ package catena
 
 import (
 	"bytes"
-	"crypto/sha256"
+	//"crypto/sha256"
 	"fmt"
+	sha256 "github.com/conformal/fastsha256"
 	"hash"
 	"os"
 	"testing"
@@ -16,25 +17,32 @@ func checkErr(t *testing.T, err error) {
 	}
 }
 
+func checkBenchErr(b *testing.B, err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		b.FailNow()
+	}
+}
+
 type rBitTest struct {
 	Value    uint32
-	Expected uint32
+	Expected int
 }
 
 var rBitTests = []rBitTest{
-	rBitTest{0x1, 0x80000000},
-	rBitTest{0x10, 0x8000000},
-	rBitTest{0x100, 0x800000},
-	rBitTest{0x1000, 0x080000},
-	rBitTest{0x10000, 0x8000},
-	rBitTest{0x1000000, 0x80},
-	rBitTest{0x10000000, 0x8},
-	rBitTest{0xabcdef01, 0x80f7b3d5},
+	rBitTest{0x1, 0x1},
+	rBitTest{0x10, 0x1},
+	rBitTest{0x100, 0x1},
+	rBitTest{0x1000, 0x1},
+	rBitTest{0x10000, 0x1},
+	rBitTest{0x1000000, 0x1},
+	rBitTest{0x10000000, 0x1},
+	rBitTest{0xabcdef01, 2163717077},
 }
 
 func TestReverseBits(t *testing.T) {
 	for i, tc := range rBitTests {
-		actual := reverseBits(tc.Value)
+		actual := tau(tc.Value)
 		if actual != tc.Expected {
 			fmt.Fprintf(os.Stderr,
 				"Test %d failed: expected %x, saw %x\n",
@@ -84,8 +92,8 @@ func TestBasicHash(t *testing.T) {
 	tweak, err := Tweak(ModePassHash, H, 16, nil)
 	checkErr(t, err)
 
-	garlic := int64(16384)
-	ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
+	garlic := int64(2)
+	ph, err := HashPassword([]byte(testPass), tweak, garlic, garlic-2, H, 16)
 	checkErr(t, err)
 
 	hash, err := HashPasswordWithSalt([]byte(testPass), tweak, ph.Salt, garlic, 0, H)
@@ -94,5 +102,28 @@ func TestBasicHash(t *testing.T) {
 	if !bytes.Equal(hash, ph.Hash) {
 		fmt.Fprintf(os.Stderr, "catena: failed to match password\n")
 		t.FailNow()
+	}
+}
+
+func BenchmarkBasicHash(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		H := sha256.New()
+		testPass := "password"
+		tweak, err := Tweak(ModePassHash, H, 16, nil)
+		checkBenchErr(b, err)
+
+		garlic := int64(31)
+		ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
+		checkBenchErr(b, err)
+
+		hash, err := HashPasswordWithSalt([]byte(testPass), tweak, ph.Salt, garlic, 0, H)
+		checkBenchErr(b, err)
+
+		if !bytes.Equal(hash, ph.Hash) {
+			fmt.Fprintf(os.Stderr, "catena: failed to match password in bench\n")
+			fmt.Printf("\texpected=%x\n", hash)
+			fmt.Printf("\t  actual=%x\n", ph.Hash)
+			b.FailNow()
+		}
 	}
 }
