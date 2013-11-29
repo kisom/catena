@@ -112,7 +112,7 @@ func BenchmarkBasicHash(b *testing.B) {
 		tweak, err := Tweak(ModePassHash, H, 16, nil)
 		checkBenchErr(b, err)
 
-		garlic := int64(31)
+		garlic := int64(16)
 		ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
 		checkBenchErr(b, err)
 
@@ -121,8 +121,6 @@ func BenchmarkBasicHash(b *testing.B) {
 
 		if !bytes.Equal(hash, ph.Hash) {
 			fmt.Fprintf(os.Stderr, "catena: failed to match password in bench\n")
-			fmt.Printf("\texpected=%x\n", hash)
-			fmt.Printf("\t  actual=%x\n", ph.Hash)
 			b.FailNow()
 		}
 	}
