@@ -92,8 +92,8 @@ func TestBasicHash(t *testing.T) {
 	tweak, err := Tweak(ModePassHash, H, 16, nil)
 	checkErr(t, err)
 
-	garlic := int64(2)
-	ph, err := HashPassword([]byte(testPass), tweak, garlic, garlic-2, H, 16)
+	garlic := int64(16)
+	ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
 	checkErr(t, err)
 
 	hash, err := HashPasswordWithSalt([]byte(testPass), tweak, ph.Salt, garlic, 0, H)
