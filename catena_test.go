@@ -2,9 +2,9 @@ package catena
 
 import (
 	"bytes"
-	//"crypto/sha256"
+	"crypto/sha256"
 	"fmt"
-	sha256 "github.com/conformal/fastsha256"
+	// sha256 "github.com/conformal/fastsha256"
 	"hash"
 	"os"
 	"testing"
@@ -93,10 +93,24 @@ func TestBasicHash(t *testing.T) {
 	checkErr(t, err)
 
 	garlic := int64(16)
-	ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
+	ph, err := HashPassword([]byte(testPass), tweak, garlic, garlic, H, 16)
 	checkErr(t, err)
 
-	if !MatchPassword([]byte(testPass), tweak, garlic, 0, H, ph) {
+	if !MatchPassword([]byte(testPass), tweak, garlic, garlic, H, ph) {
+		fmt.Fprintf(os.Stderr, "catena: failed to match password\n")
+		t.FailNow()
+	}
+}
+
+func TestBasicHashNoTweak(t *testing.T) {
+	H := sha256.New()
+	testPass := "password"
+
+	garlic := int64(16)
+	ph, err := HashPassword([]byte(testPass), nil, garlic, garlic, H, 16)
+	checkErr(t, err)
+
+	if !MatchPassword([]byte(testPass), nil, garlic, garlic, H, ph) {
 		fmt.Fprintf(os.Stderr, "catena: failed to match password\n")
 		t.FailNow()
 	}
@@ -109,10 +123,10 @@ func TestBasicHashFailsGarlic(t *testing.T) {
 	checkErr(t, err)
 
 	garlic := int64(16)
-	ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
+	ph, err := HashPassword([]byte(testPass), tweak, garlic, garlic, H, 16)
 	checkErr(t, err)
 
-	if MatchPassword([]byte(testPass), tweak, garlic-2, 1, H, ph) {
+	if MatchPassword([]byte(testPass), tweak, garlic-2, garlic-2, H, ph) {
 		fmt.Fprintf(os.Stderr, "catena: failed to match password\n")
 		t.FailNow()
 	}
@@ -126,10 +140,10 @@ func TestBasicHashFailsPassword(t *testing.T) {
 	checkErr(t, err)
 
 	garlic := int64(16)
-	ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
+	ph, err := HashPassword([]byte(testPass), tweak, garlic, garlic, H, 16)
 	checkErr(t, err)
 
-	if MatchPassword([]byte(badPass), tweak, garlic, 0, H, ph) {
+	if MatchPassword([]byte(badPass), tweak, garlic, garlic, H, ph) {
 		fmt.Fprintf(os.Stderr, "catena: failed to match password\n")
 		t.FailNow()
 	}
@@ -143,10 +157,10 @@ func BenchmarkBasicHash(b *testing.B) {
 		checkBenchErr(b, err)
 
 		garlic := int64(16)
-		ph, err := HashPassword([]byte(testPass), tweak, garlic, 0, H, 16)
+		ph, err := HashPassword([]byte(testPass), tweak, garlic, garlic, H, 16)
 		checkBenchErr(b, err)
 
-		hash, err := HashPasswordWithSalt([]byte(testPass), tweak, ph.Salt, garlic, 0, H)
+		hash, err := HashPasswordWithSalt([]byte(testPass), tweak, ph.Salt, garlic, garlic, H)
 		checkBenchErr(b, err)
 
 		if !bytes.Equal(hash, ph.Hash) {

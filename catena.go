@@ -134,6 +134,10 @@ func sbrh(c, x []byte, H hash.Hash) ([]byte, error) {
 	return x2, nil
 }
 
+// Tweak generates a new tweak from the mode, hash, salt length (in
+// bytes), and any additional data. It provides additional information
+// that will complicate an attacker's efforts, and allows a system to
+// differentiate between different uses of the Catena function's output.
 func Tweak(mode byte, H hash.Hash, saltLen int, ad []byte) ([]byte, error) {
 	if mode != ModePassHash && mode != ModeKeyDerivation {
 		return nil, ErrInvalidTweakMode
@@ -163,6 +167,7 @@ func Tweak(mode byte, H hash.Hash, saltLen int, ad []byte) ([]byte, error) {
 	return t, nil
 }
 
+// HashPasswordWithSalt scrambles the password with the provided parameters.
 func HashPasswordWithSalt(password, tweak, salt []byte, g, g0 int64, H hash.Hash) ([]byte, error) {
 	if g < g0 {
 		return nil, ErrInvalidGarlic
@@ -174,7 +179,7 @@ func HashPasswordWithSalt(password, tweak, salt []byte, g, g0 int64, H hash.Hash
 	copy(x[len(tweak)+len(password):], salt)
 
 	var err error
-	for i := g0; i < g; i++ {
+	for i := g0; i <= g; i++ {
 		c := bigPadded(big.NewInt(i), cPad)
 		twoCp1 := new(big.Int).Exp(big.NewInt(2), big.NewInt(i), nil)
 		twoCp1 = twoCp1.Add(twoCp1, big.NewInt(1))
@@ -192,11 +197,15 @@ func HashPasswordWithSalt(password, tweak, salt []byte, g, g0 int64, H hash.Hash
 	return x, nil
 }
 
+// PasswordHash is a type allowing the hash output from Catena to be stored
+// alongside the salt.
 type PasswordHash struct {
 	Salt []byte
 	Hash []byte
 }
 
+// HashPassword scrambles the password; it generates a new salt and returns a
+// PasswordHash value.
 func HashPassword(password, tweak []byte, g, g0 int64, H hash.Hash, saltLen int) (*PasswordHash, error) {
 	var ph PasswordHash
 
@@ -213,6 +222,8 @@ func HashPassword(password, tweak []byte, g, g0 int64, H hash.Hash, saltLen int)
 	return &ph, nil
 }
 
+// MatchPassword returns true if the provided password generated the hash in
+// the provided password hash.
 func MatchPassword(password, tweak []byte, g, g0 int64, H hash.Hash, ph *PasswordHash) bool {
 	out, err := HashPasswordWithSalt(password, tweak, ph.Salt, g, g0, H)
 	if err != nil {
