@@ -20,5 +20,9 @@
 
    The paper recommends a salt length of 16 bytes, but this parameter
    is left up to the user to determine.
+
+   The MatchPassword function properly determines whether a password
+   matches the output of the function. This function uses a constant
+   time comparison to mitigate timing attacks.
 */
 package catena
