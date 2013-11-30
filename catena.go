@@ -18,6 +18,7 @@ const (
 
 func bitLength(x uint32) uint32 {
 	var i uint32
+
 	switch {
 	case x > 16777216:
 		i = 32
@@ -28,6 +29,7 @@ func bitLength(x uint32) uint32 {
 	default:
 		i = 8
 	}
+
 	for {
 		if (x & (1 << i)) != 0 {
 			return i
