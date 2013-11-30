@@ -1,11 +1,6 @@
-catena: a memory consuming password scrambler
+catena: a Go implementation of the Catena memory consuming password scrambler
 
-golang implementation of Catena.
-
-See http://eprint.iacr.org/2013/525.pdf.
-
-The garlic should be between 1 and 31; see the performance note below
-for possible caveats.
+The Catena paper may be fetched from http://eprint.iacr.org/2013/525.pdf.
 
 
 ROADMAP
